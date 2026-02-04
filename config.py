@@ -38,6 +38,30 @@ class Config:
     # === 数据库配置 ===
     DATABASE_PATH = os.getenv("DATABASE_PATH", "data/dailylaid.db")
     
+    # === 测试过滤配置 ===
+    # 允许的用户 QQ 号（私聊）
+    ALLOWED_USERS = set(
+        filter(None, os.getenv("ALLOWED_USERS", "").split(","))
+    )
+    # 允许的群号
+    ALLOWED_GROUPS = set(
+        filter(None, os.getenv("ALLOWED_GROUPS", "").split(","))
+    )
+    
+    @classmethod
+    def is_allowed(cls, user_id: str, group_id: str = None) -> bool:
+        """检查是否允许处理该消息"""
+        # 如果没配置任何过滤，允许所有
+        if not cls.ALLOWED_USERS and not cls.ALLOWED_GROUPS:
+            return True
+        
+        # 群消息：检查群号
+        if group_id:
+            return str(group_id) in cls.ALLOWED_GROUPS
+        
+        # 私聊：检查用户
+        return str(user_id) in cls.ALLOWED_USERS
+    
     @classmethod
     def validate(cls):
         """验证必要配置"""

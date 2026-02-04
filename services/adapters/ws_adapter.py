@@ -56,7 +56,7 @@ class WebSocketAdapter(BaseAdapter):
         try:
             self.ws = await websockets.connect(
                 self.ws_url, 
-                extra_headers=headers if headers else None
+                additional_headers=headers if headers else None
             )
             logger.info(f"已连接到 {self.ws_url}")
             
@@ -148,8 +148,18 @@ class WebSocketAdapter(BaseAdapter):
         Returns:
             API 响应
         """
-        if not self.ws or self.ws.closed:
+        # websockets 16.0 使用 state 属性判断连接状态
+        if not self.ws:
             raise ConnectionError("WebSocket 未连接")
+        
+        try:
+            # 检查连接是否打开
+            if self.ws.state.name != "OPEN":
+                raise ConnectionError("WebSocket 连接未打开")
+        except AttributeError:
+            # 兼容旧版本
+            if hasattr(self.ws, 'closed') and self.ws.closed:
+                raise ConnectionError("WebSocket 连接已关闭")
         
         # 生成唯一 echo
         self._echo_counter += 1

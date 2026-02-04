@@ -71,9 +71,15 @@ async def main():
         
         message_type = data.get("message_type")
         user_id = str(data.get("user_id", ""))
+        group_id = str(data.get("group_id", "")) if data.get("group_id") else None
         raw_message = data.get("raw_message", "")
         
         if not raw_message:
+            return
+        
+        # 检查是否允许处理
+        if not Config.is_allowed(user_id, group_id):
+            logger.debug(f"跳过消息 (不在允许列表): [{message_type}] {user_id}")
             return
         
         logger.info(f"📩 收到消息 [{message_type}] 来自 {user_id}: {raw_message}")
