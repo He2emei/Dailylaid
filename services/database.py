@@ -6,6 +6,10 @@ import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
+from utils import get_logger
+
+logger = get_logger("database")
+
 
 class DatabaseManager:
     """SQLite 数据库管理器"""
@@ -19,6 +23,7 @@ class DatabaseManager:
         self.db_path = db_path
         self._ensure_dir()
         self._init_tables()
+        logger.info(f"数据库初始化完成: {db_path}")
     
     def _ensure_dir(self):
         """确保数据库目录存在"""

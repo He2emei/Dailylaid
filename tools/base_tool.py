@@ -4,6 +4,10 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 
+from utils import get_logger
+
+logger = get_logger("tools")
+
 
 class BaseTool(ABC):
     """工具基类
@@ -66,6 +70,7 @@ class ToolRegistry:
     def register(self, tool: BaseTool):
         """注册工具"""
         self._tools[tool.name] = tool
+        logger.debug(f"注册工具: {tool.name}")
     
     def get(self, name: str) -> BaseTool:
         """获取工具"""

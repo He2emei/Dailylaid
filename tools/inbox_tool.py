@@ -2,6 +2,9 @@
 """收集箱工具"""
 
 from .base_tool import BaseTool
+from utils import get_logger
+
+logger = get_logger("inbox")
 
 
 class InboxTool(BaseTool):
@@ -30,8 +33,10 @@ class InboxTool(BaseTool):
         
         if self.db:
             record_id = self.db.add_to_inbox(user_id, message)
+            logger.info(f"用户 {user_id} 保存消息到收集箱 (ID: {record_id})")
             return f"✅ 已保存到收集箱 (ID: {record_id})"
         else:
+            logger.warning("数据库未初始化，无法保存到收集箱")
             return "⚠️ 数据库未初始化，无法保存。"
     
     def get_items(self, user_id: str, limit: int = 10) -> str:

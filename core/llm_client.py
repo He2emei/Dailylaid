@@ -9,6 +9,10 @@ try:
 except ImportError:
     OpenAI = None
 
+from utils import get_logger
+
+logger = get_logger("llm")
+
 
 class LLMClient:
     """LLM API 客户端
@@ -29,6 +33,7 @@ class LLMClient:
         
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
+        logger.info(f"LLM 客户端初始化: {base_url} (模型: {model})")
     
     def chat(self, messages: List[Dict], 
              tools: List[Dict] = None,
@@ -53,6 +58,7 @@ class LLMClient:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
         
+        logger.debug(f"LLM 调用: {len(messages)} 条消息, 工具数: {len(tools) if tools else 0}")
         response = self.client.chat.completions.create(**kwargs)
         message = response.choices[0].message
         
