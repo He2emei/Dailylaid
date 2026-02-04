@@ -249,40 +249,198 @@ CREATE TABLE inbox (
 ### NapCat QQ 机器人框架
 
 - **官方文档**: https://napcat.napneko.icu/develop/api
-- **通信方式**: HTTP 回调 / WebSocket
+- **网络配置文档**: https://napcat.napneko.icu/onebot/network
 - **部署位置**: 远程服务器
 
-#### HTTP 回调配置
+---
 
-NapCat 需要配置 HTTP 回调地址，将消息转发到本项目：
+## 🌐 网络连接配置 (可配置)
 
-```yaml
-# NapCat 配置示例
-http:
-  enable: true
-  host: 0.0.0.0
-  port: 23333
-  post:
-    - url: http://<your-server-ip>:7778/
-      secret: ""
+NapCat 支持多种网络连接方式，本项目设计为**可配置**，支持以下 4 种模式：
+
+### 连接模式对比
+
+| 模式 | 通信方向 | 说明 | 适用场景 |
+|------|----------|------|----------|
+| **HTTP Server** (被动) | NapCat ← 本项目 | 本项目作为 HTTP 服务器，NapCat 调用 API | 需要主动查询 NapCat |
+| **HTTP Client** (主动) | NapCat → 本项目 | NapCat 推送事件到本项目的 HTTP 端点 | 传统的 Webhook 模式 |
+| **WebSocket Server** (正向WS) | 双向 | 本项目连接到 NapCat 的 WS 服务器 | 开发环境推荐 ⭐ |
+| **WebSocket Client** (反向WS) | 双向 | NapCat 连接到本项目的 WS 服务器 | 生产环境常用 |
+
+### 模式详解
+
+#### 模式 1: HTTP Client (主动推送 / Webhook)
+
+传统模式，NapCat 主动将事件推送到本项目的 HTTP 端点。
+
+```
+┌─────────────┐  POST /event   ┌─────────────┐
+│   NapCat    │ ─────────────▶ │  Dailylaid  │
+│  (远程服务器) │                │  (Flask)    │
+└─────────────┘                └─────────────┘
+       ▲                              │
+       │    POST /send_group_msg      │
+       └──────────────────────────────┘
 ```
 
-#### 发送消息 API
+**NapCat 配置 (WebUI → 网络配置 → 新建 HTTP 客户端):**
+```json
+{
+  "name": "dailylaid_webhook",
+  "type": "http_client",
+  "url": "http://<your-ip>:7778/",
+  "token": "your_secret_token"
+}
+```
+
+**本项目入口:** `app.py` (Flask)
+
+---
+
+#### 模式 2: WebSocket Server (正向 WS) ⭐ 开发推荐
+
+本项目主动连接到 NapCat 的 WebSocket 服务器，双向通信。
+
+```
+┌─────────────┐                ┌─────────────┐
+│   NapCat    │ ◀═══ WS ════▶  │  Dailylaid  │
+│  (WS Server) │    双向通信    │  (WS Client) │
+└─────────────┘                └─────────────┘
+```
+
+**NapCat 配置 (WebUI → 网络配置 → 新建 正向 WebSocket):**
+```json
+{
+  "name": "dailylaid_ws",
+  "type": "websocket_server",
+  "host": "0.0.0.0",
+  "port": 3001,
+  "token": "your_secret_token"
+}
+```
+
+**本项目连接地址:** `ws://<napcat-server>:3001`
+
+**优点:**
+- ✅ 不需要本机有公网 IP
+- ✅ 实时双向通信
+- ✅ 开发调试方便
+
+---
+
+#### 模式 3: WebSocket Client (反向 WS)
+
+NapCat 主动连接到本项目的 WebSocket 服务器。
+
+```
+┌─────────────┐                ┌─────────────┐
+│   NapCat    │ ════ WS ═══▶   │  Dailylaid  │
+│ (WS Client)  │    主动连接    │ (WS Server)  │
+└─────────────┘                └─────────────┘
+```
+
+**NapCat 配置 (WebUI → 网络配置 → 新建 反向 WebSocket):**
+```json
+{
+  "name": "dailylaid_reverse",
+  "type": "websocket_client",
+  "url": "ws://<your-ip>:7779/onebot/v11/ws",
+  "token": "your_secret_token",
+  "reconnectInterval": 5000
+}
+```
+
+**本项目入口:** 需要启动 WebSocket Server (端口 7779)
+
+---
+
+### 目录结构更新
+
+```
+services/
+├── __init__.py
+├── database.py           # 数据库管理
+├── qq_client.py          # QQ消息发送客户端 (统一接口)
+├── adapters/             # 网络适配器 ⭐ 新增
+│   ├── __init__.py
+│   ├── base_adapter.py   # 适配器基类
+│   ├── http_adapter.py   # HTTP 模式适配器
+│   └── ws_adapter.py     # WebSocket 模式适配器
+```
+
+### 适配器设计
 
 ```python
-# 发送群消息
-POST http://<napcat-server>:23333/send_group_msg
-{
-    "group_id": 123456789,
-    "message": "Hello World"
-}
+# services/adapters/base_adapter.py
+from abc import ABC, abstractmethod
 
-# 发送私聊消息
-POST http://<napcat-server>:23333/send_private_msg
-{
-    "user_id": 123456789,
-    "message": "Hello World"
-}
+class BaseAdapter(ABC):
+    """网络适配器基类"""
+    
+    @abstractmethod
+    async def start(self):
+        """启动连接"""
+        pass
+    
+    @abstractmethod
+    async def stop(self):
+        """停止连接"""
+        pass
+    
+    @abstractmethod
+    async def send_message(self, target_type: str, target_id: int, message: str):
+        """发送消息
+        target_type: 'group' | 'private'
+        """
+        pass
+    
+    @abstractmethod
+    def on_message(self, callback):
+        """注册消息回调"""
+        pass
+```
+
+```python
+# services/adapters/ws_adapter.py
+import websockets
+import asyncio
+import json
+
+class WebSocketAdapter(BaseAdapter):
+    """WebSocket 正向连接适配器"""
+    
+    def __init__(self, ws_url: str, token: str = None):
+        self.ws_url = ws_url
+        self.token = token
+        self.ws = None
+        self.callbacks = []
+    
+    async def start(self):
+        headers = {}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        
+        self.ws = await websockets.connect(self.ws_url, extra_headers=headers)
+        asyncio.create_task(self._listen())
+    
+    async def _listen(self):
+        async for message in self.ws:
+            data = json.loads(message)
+            for callback in self.callbacks:
+                await callback(data)
+    
+    async def send_message(self, target_type: str, target_id: int, message: str):
+        action = "send_group_msg" if target_type == "group" else "send_private_msg"
+        id_key = "group_id" if target_type == "group" else "user_id"
+        
+        payload = {
+            "action": action,
+            "params": {
+                id_key: target_id,
+                "message": message
+            }
+        }
+        await self.ws.send(json.dumps(payload))
 ```
 
 ---
@@ -292,18 +450,32 @@ POST http://<napcat-server>:23333/send_private_msg
 ### 环境变量 (.env)
 
 ```bash
-# LLM API 配置
+# === LLM API 配置 ===
 LLM_API_KEY=your_api_key_here
 LLM_BASE_URL=https://api.openai.com/v1
 
-# NapCat 配置
-NAPCAT_BASE_URL=http://your-server-ip:23333
+# === NapCat 网络配置 ===
+# 连接模式: http_client | ws_server | ws_client
+NAPCAT_MODE=ws_server
 
-# 服务器配置
+# HTTP 模式配置 (当 NAPCAT_MODE=http_client)
+NAPCAT_HTTP_URL=http://your-server-ip:23333
+NAPCAT_HTTP_TOKEN=
+
+# WebSocket 正向模式配置 (当 NAPCAT_MODE=ws_server) ⭐ 开发推荐
+NAPCAT_WS_URL=ws://your-server-ip:3001
+NAPCAT_WS_TOKEN=
+
+# WebSocket 反向模式配置 (当 NAPCAT_MODE=ws_client)
+# 本项目作为 WS Server，监听端口
+NAPCAT_WS_SERVER_HOST=0.0.0.0
+NAPCAT_WS_SERVER_PORT=7779
+
+# === 本地服务配置 ===
 SERVER_HOST=0.0.0.0
 SERVER_PORT=7778
 
-# 数据库路径
+# === 数据库配置 ===
 DATABASE_PATH=data/dailylaid.db
 ```
 
