@@ -4,6 +4,10 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 
+from utils import get_logger
+
+logger = get_logger("adapter")
+
 
 class BaseAdapter(ABC):
     """网络适配器基类
@@ -59,7 +63,7 @@ class BaseAdapter(ABC):
                 if hasattr(result, '__await__'):
                     await result
             except Exception as e:
-                print(f"[Adapter] 消息回调出错: {e}")
+                logger.error(f"消息回调出错: {e}")
     
     @property
     def is_running(self) -> bool:

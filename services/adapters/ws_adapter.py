@@ -11,6 +11,9 @@ except ImportError:
     websockets = None
 
 from .base_adapter import BaseAdapter
+from utils import get_logger
+
+logger = get_logger("ws_adapter")
 
 
 class WebSocketAdapter(BaseAdapter):
@@ -55,15 +58,15 @@ class WebSocketAdapter(BaseAdapter):
                 self.ws_url, 
                 extra_headers=headers if headers else None
             )
-            print(f"[WS] 已连接到 {self.ws_url}")
+            logger.info(f"已连接到 {self.ws_url}")
             
             # 启动监听任务
             self._listen_task = asyncio.create_task(self._listen())
             
         except Exception as e:
-            print(f"[WS] 连接失败: {e}")
+            logger.error(f"连接失败: {e}")
             if self._running:
-                print(f"[WS] {self._reconnect_interval}秒后重试...")
+                logger.info(f"{self._reconnect_interval}秒后重试...")
                 await asyncio.sleep(self._reconnect_interval)
                 await self._connect()
     
@@ -75,15 +78,15 @@ class WebSocketAdapter(BaseAdapter):
                     data = json.loads(message)
                     await self._handle_message(data)
                 except json.JSONDecodeError:
-                    print(f"[WS] 收到非JSON消息: {message[:100]}")
+                    logger.warning(f"收到非JSON消息: {message[:100]}")
         except websockets.ConnectionClosed:
-            print("[WS] 连接已关闭")
+            logger.warning("连接已关闭")
             if self._running:
-                print(f"[WS] {self._reconnect_interval}秒后重连...")
+                logger.info(f"{self._reconnect_interval}秒后重连...")
                 await asyncio.sleep(self._reconnect_interval)
                 await self._connect()
         except Exception as e:
-            print(f"[WS] 监听出错: {e}")
+            logger.error(f"监听出错: {e}")
     
     async def _handle_message(self, data: dict):
         """处理收到的消息"""
@@ -113,7 +116,7 @@ class WebSocketAdapter(BaseAdapter):
         
         if self.ws:
             await self.ws.close()
-            print("[WS] 连接已关闭")
+            logger.info("连接已关闭")
     
     async def send_message(self, target_type: str, target_id: int, message: str) -> dict:
         """发送消息

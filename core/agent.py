@@ -5,6 +5,9 @@ from typing import Dict, Optional
 from .llm_client import LLMClient
 from tools import ToolRegistry, InboxTool
 from services.database import DatabaseManager
+from utils import get_logger
+
+logger = get_logger("agent")
 
 
 SYSTEM_PROMPT = """你是 Dailylaid，一个个人日常事务管理助手。
@@ -83,7 +86,7 @@ class DailylaidAgent:
             return "收到你的消息了！"
             
         except Exception as e:
-            print(f"[Agent] 处理消息出错: {e}")
+            logger.error(f"处理消息出错: {e}")
             return f"处理消息时出错: {str(e)}"
     
     async def _handle_tool_calls(self, user_id: str, tool_calls: list) -> str:
