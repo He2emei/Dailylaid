@@ -56,41 +56,43 @@ Dailylaid/
 ├── .env                      # 环境变量（不提交）
 ├── .env.example              # 环境变量示例
 ├── .gitignore                # Git 忽略配置
+├── .venv/                    # Python 虚拟环境（不提交）
 │
-├── app.py                    # 主入口：Flask 服务器
-├── config.py                 # 全局配置
+├── app.py                    # 主入口
+├── config.py                 # 全局配置（含消息过滤）
+├── llm_config.yaml           # LLM 多模型配置
 │
 ├── core/                     # 核心模块
 │   ├── __init__.py
 │   ├── agent.py              # Agent 主循环逻辑
 │   ├── llm_client.py         # LLM API 客户端
-│   ├── classifier.py         # 意图分类器
-│   └── memory.py             # 记忆/上下文管理
+│   └── llm_config.py         # LLM 配置管理器
 │
-├── tools/                    # 工具层（每个功能一个模块）
+├── tools/                    # 工具层
 │   ├── __init__.py
-│   ├── base_tool.py          # 工具基类
-│   ├── favor_tool.py         # 人情追踪工具
-│   ├── todo_tool.py          # 待办管理工具
-│   ├── interest_tool.py      # 兴趣收集工具
+│   ├── base_tool.py          # 工具基类 + ToolRegistry
 │   └── inbox_tool.py         # 收集箱工具
 │
 ├── services/                 # 服务层
 │   ├── __init__.py
-│   ├── database.py           # 数据库管理
-│   └── qq_client.py          # QQ消息发送客户端
+│   ├── database.py           # SQLite 数据库管理
+│   └── adapters/             # 网络适配器
+│       ├── __init__.py
+│       ├── base_adapter.py   # 适配器基类
+│       └── ws_adapter.py     # WebSocket 适配器
 │
-├── handlers/                 # 消息处理器
+├── utils/                    # 工具函数
 │   ├── __init__.py
-│   └── message_handler.py    # 消息接收与分发
+│   └── logger.py             # 日志系统
+│
+├── handlers/                 # 消息处理器（预留）
+│   └── __init__.py
 │
 ├── data/                     # 数据存储
-│   ├── dailylaid.db          # SQLite 数据库
-│   └── inbox/                # 收集箱原始消息
+│   └── dailylaid.db          # SQLite 数据库
 │
 └── tests/                    # 测试文件
-    ├── __init__.py
-    └── test_tools.py
+    └── __init__.py
 ```
 
 ---
@@ -182,6 +184,63 @@ class BaseTool:
     def execute(self, params: dict) -> str:
         """执行工具并返回结果文本"""
         raise NotImplementedError
+```
+
+### 6. 日志系统 (utils/logger.py)
+
+集中式日志管理，支持控制台和文件双输出：
+
+```python
+from utils import get_logger, init_logger
+
+# 初始化（在 app.py 中调用一次）
+init_logger(level="INFO", log_file="logs/dailylaid.log")
+
+# 在各模块中使用
+logger = get_logger("模块名")
+logger.info("信息")
+logger.error("错误")
+```
+
+### 7. LLM 多模型配置 (llm_config.yaml)
+
+支持多提供商和任务分级的模型配置：
+
+```yaml
+providers:
+  aicanapi:
+    base_url: "https://aicanapi.com/v1"
+    api_key_env: "AICANAPI_KEY"
+
+models:
+  advanced:
+    model: gemini-2.5-flash    # 复杂任务
+  standard:
+    model: gemini-2.5-flash    # 日常任务
+  light:
+    model: gemini-2.5-flash    # 简单任务
+```
+
+使用方式：
+```python
+from core import LLMConfig
+
+config = LLMConfig("llm_config.yaml")
+client = config.get_client("standard")  # 获取指定级别的客户端
+```
+
+### 8. 消息过滤 (config.py)
+
+限制只处理特定用户/群的消息（测试用）：
+
+```python
+# .env 中配置
+ALLOWED_USERS=1659388154
+ALLOWED_GROUPS=638227713
+
+# 代码中检查
+if Config.is_allowed(user_id, group_id):
+    # 处理消息
 ```
 
 ---
