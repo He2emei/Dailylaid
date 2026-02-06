@@ -9,13 +9,25 @@ sys.path.insert(0, ".")
 
 from config import Config
 from core import LLMClient, DailylaidAgent
-from services import DatabaseManager
+from services import DatabaseManager, ReminderService
 from services.adapters import WebSocketAdapter
 from utils import init_logger, get_logger
 
 
+# 全局变量，用于提醒服务发送消息
+_adapter = None
+
+
+async def send_reminder_message(user_id: str, message: str):
+    """提醒服务的消息发送回调"""
+    if _adapter:
+        await _adapter.send_message("private", int(user_id), message)
+
+
 async def main():
     """主函数"""
+    global _adapter
+    
     # 初始化日志
     init_logger(level="INFO", log_file="logs/dailylaid.log")
     logger = get_logger("app")
@@ -46,6 +58,10 @@ async def main():
     logger.info("初始化 Agent...")
     agent = DailylaidAgent(llm, db)
     
+    # 初始化提醒服务
+    logger.info("初始化提醒服务...")
+    reminder_service = ReminderService(db, send_callback=send_reminder_message)
+    
     # 根据配置选择网络适配器
     logger.info(f"初始化网络适配器 (模式: {Config.NAPCAT_MODE})...")
     
@@ -59,6 +75,9 @@ async def main():
         logger.error(f"暂不支持的连接模式: {Config.NAPCAT_MODE}")
         logger.error("当前仅支持: ws_server (正向 WebSocket)")
         return
+    
+    # 设置全局 adapter 引用（供提醒服务使用）
+    _adapter = adapter
     
     # 注册消息处理回调
     async def on_message(data: dict):
@@ -104,8 +123,12 @@ async def main():
     try:
         await adapter.start()
         
+        # 启动提醒服务
+        reminder_service.start()
+        
         logger.info("✅ Dailylaid 已启动!")
         logger.info(f"   连接地址: {Config.NAPCAT_WS_URL}")
+        logger.info("   提醒服务: 已启动 (每分钟检查)")
         logger.info("按 Ctrl+C 停止...")
         
         # 保持运行
@@ -117,6 +140,7 @@ async def main():
     except Exception as e:
         logger.error(f"运行出错: {e}")
     finally:
+        reminder_service.stop()
         await adapter.stop()
         logger.info("👋 已停止")
 

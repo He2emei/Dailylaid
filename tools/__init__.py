@@ -3,5 +3,6 @@
 
 from .base_tool import BaseTool, ToolRegistry
 from .inbox_tool import InboxTool
+from .schedule_tool import ScheduleTool, ScheduleListTool
 
-__all__ = ["BaseTool", "ToolRegistry", "InboxTool"]
+__all__ = ["BaseTool", "ToolRegistry", "InboxTool", "ScheduleTool", "ScheduleListTool"]

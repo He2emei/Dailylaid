@@ -3,7 +3,7 @@
 
 from typing import Dict, Optional
 from .llm_client import LLMClient
-from tools import ToolRegistry, InboxTool
+from tools import ToolRegistry, InboxTool, ScheduleTool, ScheduleListTool
 from services.database import DatabaseManager
 from utils import get_logger
 
@@ -12,14 +12,17 @@ logger = get_logger("agent")
 
 SYSTEM_PROMPT = """你是 Dailylaid，一个个人日常事务管理助手。
 
-你的任务是理解用户的消息，并决定如何处理：
-1. 如果消息与已注册的工具相关，调用对应工具处理
-2. 如果无法确定如何处理，将消息保存到收集箱 (inbox)
+你的任务是理解用户的消息，识别用户意图，并调用对应的工具处理：
 
 当前可用的功能：
-- inbox: 收集箱，用于保存暂时无法处理的消息
+- schedule: 添加日程（用户提到某个时间要做某事）
+- schedule_list: 查看日程（用户问有什么安排）
+- inbox: 收集箱（无法确定如何处理时使用）
 
-回复时请简洁友好，使用中文。
+重要提示：
+1. 当用户说"明天下午3点开会"这类话时，需要把时间转换为具体日期格式 YYYY-MM-DD HH:MM
+2. 当前日期是 {today}
+3. 回复时请简洁友好，使用中文
 """
 
 
@@ -46,6 +49,8 @@ class DailylaidAgent:
     def _register_tools(self):
         """注册所有可用工具"""
         self.tools.register(InboxTool(self.db))
+        self.tools.register(ScheduleTool(self.db))
+        self.tools.register(ScheduleListTool(self.db))
     
     async def process(self, user_id: str, message: str) -> str:
         """处理用户消息
@@ -57,10 +62,16 @@ class DailylaidAgent:
         Returns:
             回复内容
         """
+        from datetime import datetime
+        
         try:
+            # 动态生成 system prompt (插入当前日期)
+            today = datetime.now().strftime("%Y-%m-%d %A")  # 如 "2026-02-07 Friday"
+            system_prompt = SYSTEM_PROMPT.format(today=today)
+            
             # 构造消息
             messages = [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message}
             ]
             
