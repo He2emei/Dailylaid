@@ -24,6 +24,54 @@ async def send_reminder_message(user_id: str, message: str):
         await _adapter.send_message("private", int(user_id), message)
 
 
+async def handle_command(user_id: str, message: str, db) -> str:
+    """处理快捷命令（以 / 开头的消息）
+    
+    Args:
+        user_id: 用户 ID
+        message: 消息内容
+        db: 数据库实例
+        
+    Returns:
+        命令处理结果，如果不是有效命令返回 None
+    """
+    from tools import InboxTool, ScheduleListTool
+    
+    cmd = message.lower().strip()
+    
+    # /inbox - 查看收集箱
+    if cmd in ["/inbox", "/收集箱"]:
+        inbox_tool = InboxTool(db)
+        return inbox_tool.list_items(user_id)
+    
+    # /today - 今日日程
+    if cmd in ["/today", "/今天", "/今日"]:
+        schedule_tool = ScheduleListTool(db)
+        return schedule_tool.execute(user_id, range_days=1)
+    
+    # /week - 本周日程
+    if cmd in ["/week", "/本周"]:
+        schedule_tool = ScheduleListTool(db)
+        return schedule_tool.execute(user_id, range_days=7)
+    
+    # /help - 帮助
+    if cmd in ["/help", "/帮助", "/?"]:
+        return """📋 可用命令：
+
+/inbox  - 查看收集箱
+/today  - 今日日程
+/week   - 本周日程
+/help   - 显示此帮助
+
+也可以直接用自然语言对话，例如：
+• "明天下午3点开会"
+• "今天有什么安排"
+"""
+    
+    # 未知命令，返回 None 让 Agent 处理
+    return None
+
+
 async def main():
     """主函数"""
     global _adapter
@@ -103,8 +151,14 @@ async def main():
         
         logger.info(f"📩 收到消息 [{message_type}] 来自 {user_id}: {raw_message}")
         
-        # 调用 Agent 处理
-        reply = await agent.process(user_id, raw_message)
+        # 检查是否是快捷命令（以 / 开头，绕过 LLM）
+        reply = None
+        if raw_message.startswith("/"):
+            reply = await handle_command(user_id, raw_message, db)
+        
+        # 如果不是命令或命令未处理，走 Agent 流程
+        if reply is None:
+            reply = await agent.process(user_id, raw_message)
         
         if reply:
             logger.info(f"📤 回复: {reply}")
