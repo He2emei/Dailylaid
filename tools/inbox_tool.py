@@ -86,3 +86,56 @@ class InboxTool(BaseTool):
         # TODO: 实现归档逻辑
         # self.db.archive_inbox_item(item_id)
         return f"✅ 已归档条目 #{item_id}"
+
+
+class InboxListTool(BaseTool):
+    """查看收集箱工具 - 供 LLM 调用"""
+    
+    name = "inbox_list"
+    description = """查看收集箱内容。
+当用户想查看收集箱、待处理事项时使用。
+例如：
+- "看看收集箱"
+- "有什么待处理的"
+- "收集箱里有什么"
+"""
+    parameters = {
+        "type": "object",
+        "properties": {
+            "limit": {
+                "type": "integer",
+                "description": "显示条数，默认10条"
+            }
+        },
+        "required": []
+    }
+    
+    def execute(self, user_id: str, limit: int = 10, **params) -> str:
+        """查看收集箱"""
+        if not self.db:
+            return "数据库未初始化"
+        
+        items = self.db.get_inbox(user_id, limit)
+        if not items:
+            return "📭 收集箱是空的"
+        
+        result = f"📥 收集箱 ({len(items)} 条)\n\n"
+        for i, item in enumerate(items, 1):
+            msg = item['raw_message']
+            if len(msg) > 40:
+                msg = msg[:40] + "..."
+            
+            created = item.get('created_at', '')
+            if created:
+                try:
+                    dt = datetime.fromisoformat(created)
+                    time_str = dt.strftime("%m/%d %H:%M")
+                except:
+                    time_str = ""
+            else:
+                time_str = ""
+            
+            result += f"{i}. [{time_str}] {msg}\n"
+        
+        return result.strip()
+

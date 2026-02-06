@@ -3,7 +3,7 @@
 
 from typing import Dict, Optional
 from .llm_client import LLMClient
-from tools import ToolRegistry, InboxTool, ScheduleTool, ScheduleListTool
+from tools import ToolRegistry, InboxTool, InboxListTool, ScheduleTool, ScheduleListTool
 from services.database import DatabaseManager
 from utils import get_logger
 
@@ -17,7 +17,8 @@ SYSTEM_PROMPT = """你是 Dailylaid，一个个人日常事务管理助手。
 当前可用的功能：
 - schedule: 添加日程（用户提到某个时间要做某事）
 - schedule_list: 查看日程（用户问有什么安排）
-- inbox: 收集箱（无法确定如何处理时使用）
+- inbox: 保存到收集箱（无法确定如何处理的内容）
+- inbox_list: 查看收集箱（用户问收集箱有什么）
 
 重要提示：
 1. 当用户说"明天下午3点开会"这类话时，需要把时间转换为具体日期格式 YYYY-MM-DD HH:MM
@@ -49,6 +50,7 @@ class DailylaidAgent:
     def _register_tools(self):
         """注册所有可用工具"""
         self.tools.register(InboxTool(self.db))
+        self.tools.register(InboxListTool(self.db))
         self.tools.register(ScheduleTool(self.db))
         self.tools.register(ScheduleListTool(self.db))
     
