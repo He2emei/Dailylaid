@@ -94,6 +94,36 @@ class DatabaseManager:
                 )
             ''')
             
+            # 日程表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS schedules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    start_time TEXT NOT NULL,
+                    end_time TEXT,
+                    location TEXT,
+                    reminders TEXT DEFAULT '[]',
+                    repeat_rule TEXT DEFAULT '{"type": "none"}',
+                    source_message TEXT,
+                    related_messages TEXT DEFAULT '[]',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # 提醒日志表（防止重复提醒）
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS reminder_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    schedule_id INTEGER NOT NULL,
+                    remind_time TEXT NOT NULL,
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(schedule_id, remind_time)
+                )
+            ''')
+            
             conn.commit()
     
     # === 收集箱操作 ===
@@ -224,3 +254,108 @@ class DatabaseManager:
                     (user_id,)
                 )
             return [dict(row) for row in cursor.fetchall()]
+    
+    # === 日程操作 ===
+    
+    def insert_schedule(self, data: Dict[str, Any]) -> int:
+        """插入日程"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO schedules 
+                   (user_id, title, description, start_time, end_time, location, 
+                    reminders, repeat_rule, source_message)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (data["user_id"], data["title"], data.get("description"),
+                 data["start_time"], data.get("end_time"), data.get("location"),
+                 data.get("reminders", "[]"), data.get("repeat_rule", '{"type": "none"}'),
+                 data.get("source_message"))
+            )
+            conn.commit()
+            return cursor.lastrowid
+    
+    def get_schedules(self, user_id: str, start_date, end_date) -> List[Dict]:
+        """获取日期范围内的日程"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM schedules 
+                   WHERE user_id = ? 
+                   AND (date(start_time) BETWEEN ? AND ? 
+                        OR repeat_rule != '{"type": "none"}')
+                   ORDER BY start_time""",
+                (user_id, str(start_date), str(end_date))
+            )
+            return [dict(row) for row in cursor.fetchall()]
+    
+    def get_schedule_by_id(self, schedule_id: int) -> Optional[Dict]:
+        """获取单个日程"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM schedules WHERE id = ?", (schedule_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
+    def update_schedule(self, schedule_id: int, updates: Dict[str, Any]) -> bool:
+        """更新日程"""
+        if not updates:
+            return False
+        
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+            values = list(updates.values()) + [schedule_id]
+            cursor.execute(
+                f"UPDATE schedules SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                values
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def delete_schedule(self, schedule_id: int) -> bool:
+        """删除日程"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM schedules WHERE id = ?", (schedule_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def get_upcoming_schedules(self, hours: int = 24) -> List[Dict]:
+        """获取未来 N 小时内的日程（用于提醒）"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM schedules 
+                   WHERE datetime(start_time) BETWEEN datetime('now') AND datetime('now', ? || ' hours')
+                   ORDER BY start_time""",
+                (str(hours),)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+    
+    # === 提醒日志 ===
+    
+    def log_reminder(self, schedule_id: int, remind_time: str) -> bool:
+        """记录已发送的提醒"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO reminder_logs (schedule_id, remind_time) VALUES (?, ?)",
+                    (schedule_id, remind_time)
+                )
+                conn.commit()
+                return True
+            except sqlite3.IntegrityError:
+                # 已存在，避免重复
+                return False
+    
+    def is_reminder_sent(self, schedule_id: int, remind_time: str) -> bool:
+        """检查提醒是否已发送"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM reminder_logs WHERE schedule_id = ? AND remind_time = ?",
+                (schedule_id, remind_time)
+            )
+            return cursor.fetchone() is not None
+
