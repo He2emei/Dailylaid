@@ -10,10 +10,15 @@ load_dotenv()
 class Config:
     """配置类"""
     
-    # === LLM 配置 ===
+    # === LLM 配置 (执行层) ===
     LLM_API_KEY = os.getenv("LLM_API_KEY", "")
     LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
     LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+    
+    # === 路由模型配置 (第一层) ===
+    ROUTER_API_KEY = os.getenv("ROUTER_API_KEY", "")
+    ROUTER_BASE_URL = os.getenv("ROUTER_BASE_URL", "")
+    ROUTER_MODEL = os.getenv("ROUTER_MODEL", "")
     
     # === NapCat 网络配置 ===
     # 连接模式: http_client | ws_server | ws_client

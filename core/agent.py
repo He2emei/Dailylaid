@@ -44,12 +44,21 @@ EXECUTOR_PROMPT = """你是 Dailylaid，一个个人日常事务管理助手。
 class DailylaidAgent:
     """Dailylaid Agent 核心 - 两层模型架构
     
-    第一层 (Router): 快速判断使用哪个模块
-    第二层 (Executor): 在模块内调用具体工具
+    第一层 (Router): 快速判断使用哪个模块（使用轻量模型）
+    第二层 (Executor): 在模块内调用具体工具（使用完整模型）
     """
     
-    def __init__(self, llm_client: LLMClient, db: DatabaseManager):
+    def __init__(self, llm_client: LLMClient, db: DatabaseManager, 
+                 router_llm: LLMClient = None):
+        """初始化 Agent
+        
+        Args:
+            llm_client: 执行层 LLM 客户端
+            db: 数据库管理器
+            router_llm: 路由层 LLM 客户端（可选，默认使用 llm_client）
+        """
         self.llm = llm_client
+        self.router_llm = router_llm or llm_client  # 路由层可用独立模型
         self.db = db
         self.modules = ModuleRegistry()
         
@@ -114,8 +123,8 @@ class DailylaidAgent:
             message=message
         )
         
-        # 简单的 text completion
-        response = self.llm.chat([
+        # 使用路由模型（轻量快速）
+        response = self.router_llm.chat([
             {"role": "user", "content": prompt}
         ])
         

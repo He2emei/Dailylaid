@@ -103,8 +103,18 @@ async def main():
         model=Config.LLM_MODEL
     )
     
+    # 初始化路由模型（如果配置了）
+    router_llm = None
+    if Config.ROUTER_API_KEY and Config.ROUTER_MODEL:
+        logger.info("初始化路由模型...")
+        router_llm = LLMClient(
+            api_key=Config.ROUTER_API_KEY,
+            base_url=Config.ROUTER_BASE_URL or Config.LLM_BASE_URL,
+            model=Config.ROUTER_MODEL
+        )
+    
     logger.info("初始化 Agent...")
-    agent = DailylaidAgent(llm, db)
+    agent = DailylaidAgent(llm, db, router_llm=router_llm)
     
     # 初始化提醒服务
     logger.info("初始化提醒服务...")
