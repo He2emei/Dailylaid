@@ -94,6 +94,8 @@ def init_logger(level: str = "INFO", log_file: str = None):
     Args:
         level: 日志级别字符串 ("DEBUG", "INFO", "WARNING", "ERROR")
         log_file: 日志文件路径
+        
+    注意: 此函数会强制重建 logger，即使之前已创建
     """
     global _logger
     
@@ -106,6 +108,15 @@ def init_logger(level: str = "INFO", log_file: str = None):
     }
     
     log_level = level_map.get(level.upper(), logging.INFO)
+    
+    # 如果已存在 logger，清除旧的 handlers
+    if _logger is not None:
+        for handler in _logger.handlers[:]:
+            handler.close()
+            _logger.removeHandler(handler)
+    
+    # 重新配置
     _logger = setup_logger(level=log_level, log_file=log_file)
     
     return _logger
+
