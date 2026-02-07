@@ -4,7 +4,7 @@
 from typing import Dict, Optional, List
 from datetime import datetime
 
-from .llm_client import LLMClient
+from .llm_manager import LLMManager
 from tools import InboxTool, InboxListTool, ScheduleTool, ScheduleListTool
 from tools.modules import ToolModule, ModuleRegistry
 from services.database import DatabaseManager
@@ -48,17 +48,14 @@ class DailylaidAgent:
     第二层 (Executor): 在模块内调用具体工具（使用完整模型）
     """
     
-    def __init__(self, llm_client: LLMClient, db: DatabaseManager, 
-                 router_llm: LLMClient = None):
+    def __init__(self, llm_manager: LLMManager, db: DatabaseManager):
         """初始化 Agent
         
         Args:
-            llm_client: 执行层 LLM 客户端
+            llm_manager: LLM 多模型管理器
             db: 数据库管理器
-            router_llm: 路由层 LLM 客户端（可选，默认使用 llm_client）
         """
-        self.llm = llm_client
-        self.router_llm = router_llm or llm_client  # 路由层可用独立模型
+        self.llm = llm_manager
         self.db = db
         self.modules = ModuleRegistry()
         
@@ -114,7 +111,7 @@ class DailylaidAgent:
             return f"处理出错: {str(e)}"
     
     async def _route(self, message: str) -> str:
-        """第一层：路由判断"""
+        """第一层：路由判断（使用 light 模型）"""
         today = datetime.now().strftime("%Y-%m-%d %A")
         
         prompt = ROUTER_PROMPT.format(
@@ -124,9 +121,10 @@ class DailylaidAgent:
         )
         
         # 使用路由模型（轻量快速）
-        response = self.router_llm.chat([
-            {"role": "user", "content": prompt}
-        ])
+        response = self.llm.call_with_fallback(
+            usage="router",
+            messages=[{"role": "user", "content": prompt}]
+        )
         
         # 提取模块名
         content = response.get("content", "inbox").strip().lower()
@@ -143,7 +141,7 @@ class DailylaidAgent:
         return "inbox"
     
     async def _execute(self, user_id: str, message: str, module: ToolModule) -> str:
-        """第二层：工具执行"""
+        """第二层：工具执行（使用模块对应的模型）"""
         today = datetime.now().strftime("%Y-%m-%d %A")
         
         # 构建 executor prompt
@@ -159,8 +157,9 @@ class DailylaidAgent:
         if module.name != "inbox" and self.inbox_tool:
             tools.append(self.inbox_tool.to_openai_tool())
         
-        # 调用 LLM
-        response = self.llm.chat(
+        # 使用模块对应的模型
+        response = self.llm.call_with_fallback(
+            usage=module.name,  # 使用模块名作为 usage
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message}

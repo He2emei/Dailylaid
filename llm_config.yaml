@@ -1,37 +1,34 @@
 # LLM 多模型配置
-# 敏感信息（API Keys）请在 .env 中配置
+# 支持分级模型和故障切换
 
-providers:
-  # aicanapi - 主要提供商（Gemini 特价）
-  aicanapi:
-    base_url: "https://aicanapi.com/v1"
-    api_key_env: "AICANAPI_KEY"
+# ============================================================
+# 模型分级
+# ============================================================
 
-  # 本地反代 - 备用（支持全部模型）
-  local:
-    base_url: "http://127.0.0.1:8045/v1"
-    api_key_env: "LOCAL_API_KEY"
-
-# 当前使用的提供商
-active_provider: aicanapi
-
-# 模型配置（按任务复杂度分级）
-# 注意：aicanapi 目前只支持 Gemini 系列
 models:
-  # 高级任务：复杂推理
-  advanced:
-    model: gemini-2.5-flash
-    description: "复杂推理任务"
-
-  # 标准任务：日常对话
-  standard:
-    model: gemini-2.5-flash
-    description: "日常对话处理"
-
-  # 轻量任务：简单分类
+  # 轻量级：用于路由、简单分类
   light:
-    model: gemini-2.5-flash
-    description: "简单分类任务"
+    - name: gemini-lite
+      api_key_env: ROUTER_API_KEY
+      base_url: https://aicanapi.com/v1
+      model: gemini-2.5-flash-lite-nothinking
 
-# 默认使用的模型级别
-default_level: standard
+  # 标准级：用于日常任务处理
+  standard:
+    - name: gemini-flash
+      api_key_env: LLM_API_KEY
+      base_url: https://aicanapi.com/v1
+      model: gemini-2.5-flash
+
+  # 高级：用于复杂推理（暂无）
+  advanced: []
+
+# ============================================================
+# 用途映射
+# ============================================================
+
+usage:
+  router: light # 意图路由用轻量模型
+  schedule: standard # 日程处理用标准模型
+  inbox: standard # 收集箱用标准模型
+  default: standard # 默认使用标准模型

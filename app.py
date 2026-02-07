@@ -96,25 +96,12 @@ async def main():
     logger.info("初始化数据库...")
     db = DatabaseManager(Config.DATABASE_PATH)
     
-    logger.info("初始化 LLM 客户端...")
-    llm = LLMClient(
-        api_key=Config.LLM_API_KEY,
-        base_url=Config.LLM_BASE_URL,
-        model=Config.LLM_MODEL
-    )
-    
-    # 初始化路由模型（如果配置了）
-    router_llm = None
-    if Config.ROUTER_API_KEY and Config.ROUTER_MODEL:
-        logger.info("初始化路由模型...")
-        router_llm = LLMClient(
-            api_key=Config.ROUTER_API_KEY,
-            base_url=Config.ROUTER_BASE_URL or Config.LLM_BASE_URL,
-            model=Config.ROUTER_MODEL
-        )
+    logger.info("初始化 LLM 管理器...")
+    from core import LLMManager
+    llm_manager = LLMManager("llm_config.yaml")
     
     logger.info("初始化 Agent...")
-    agent = DailylaidAgent(llm, db, router_llm=router_llm)
+    agent = DailylaidAgent(llm_manager, db)
     
     # 初始化提醒服务
     logger.info("初始化提醒服务...")
