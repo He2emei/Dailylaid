@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">
+  <defs>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="grad0" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb"/>
+      <stop offset="100%" style="stop-color:#f5576c"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe"/>
+      <stop offset="100%" style="stop-color:#00f2fe"/>
+    </linearGradient>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#43e97b"/>
+      <stop offset="100%" style="stop-color:#38f9d7"/>
+    </linearGradient>
+    <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fa709a"/>
+      <stop offset="100%" style="stop-color:#fee140"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="400" height="500" fill="#f5f7fa"/>
+  
+  <text x="200" y="45" text-anchor="middle" fill="#333" font-family="Arial" font-size="18" font-weight="bold">
+    2026-02-07
+  </text>
+
+  <rect x="20" y="70" width="360" height="70" rx="12" fill="url(#grad0)" filter="url(#cardShadow)"/>
+  <text x="35" y="112" fill="white" font-size="28">💻</text>
+  <text x="75" y="100" fill="white" font-family="Arial" font-size="15" font-weight="bold">改代码</text>
+  <text x="75" y="120" fill="rgba(255,255,255,0.8)" font-family="Arial" font-size="12">09:00 - 10:30</text>
+
+  <rect x="20" y="150" width="360" height="70" rx="12" fill="url(#grad1)" filter="url(#cardShadow)"/>
+  <text x="35" y="192" fill="white" font-size="28">📞</text>
+  <text x="75" y="180" fill="white" font-family="Arial" font-size="15" font-weight="bold">开会讨论</text>
+  <text x="75" y="200" fill="rgba(255,255,255,0.8)" font-family="Arial" font-size="12">10:30 - 11:30</text>
+
+  <rect x="20" y="230" width="360" height="70" rx="12" fill="url(#grad2)" filter="url(#cardShadow)"/>
+  <text x="35" y="272" fill="white" font-size="28">🍽️</text>
+  <text x="75" y="260" fill="white" font-family="Arial" font-size="15" font-weight="bold">午餐休息</text>
+  <text x="75" y="280" fill="rgba(255,255,255,0.8)" font-family="Arial" font-size="12">12:00 - 13:00</text>
+
+  <rect x="20" y="310" width="360" height="70" rx="12" fill="url(#grad3)" filter="url(#cardShadow)"/>
+  <text x="35" y="352" fill="white" font-size="28">📝</text>
+  <text x="75" y="340" fill="white" font-family="Arial" font-size="15" font-weight="bold">写文档</text>
+  <text x="75" y="360" fill="rgba(255,255,255,0.8)" font-family="Arial" font-size="12">14:00 - 16:00</text>
+
+  <rect x="20" y="390" width="360" height="70" rx="12" fill="url(#grad4)" filter="url(#cardShadow)"/>
+  <text x="35" y="432" fill="white" font-size="28">👥</text>
+  <text x="75" y="420" fill="white" font-family="Arial" font-size="15" font-weight="bold">Code Review</text>
+  <text x="75" y="440" fill="rgba(255,255,255,0.8)" font-family="Arial" font-size="12">16:30 - 17:30</text>
+</svg>

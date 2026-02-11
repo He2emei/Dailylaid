@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="580">
+  <rect width="700" height="580" fill="white"/>
+  
+  <text x="30" y="40" fill="#333" font-family="Helvetica" font-size="20" font-weight="bold">2026-02-07</text>
+  <line x1="30" y1="55" x2="670" y2="55" stroke="#eee" stroke-width="2"/>
+  <text x="50" y="79" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">08</text>
+  <line x1="60" y1="75" x2="640" y2="75" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="119" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">09</text>
+  <line x1="60" y1="115" x2="640" y2="115" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="159" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">10</text>
+  <line x1="60" y1="155" x2="640" y2="155" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="199" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">11</text>
+  <line x1="60" y1="195" x2="640" y2="195" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="239" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">12</text>
+  <line x1="60" y1="235" x2="640" y2="235" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="279" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">13</text>
+  <line x1="60" y1="275" x2="640" y2="275" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="319" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">14</text>
+  <line x1="60" y1="315" x2="640" y2="315" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="359" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">15</text>
+  <line x1="60" y1="355" x2="640" y2="355" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="399" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">16</text>
+  <line x1="60" y1="395" x2="640" y2="395" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="439" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">17</text>
+  <line x1="60" y1="435" x2="640" y2="435" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="479" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">18</text>
+  <line x1="60" y1="475" x2="640" y2="475" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="519" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">19</text>
+  <line x1="60" y1="515" x2="640" y2="515" stroke="#f0f0f0" stroke-width="1"/>
+  <text x="50" y="559" text-anchor="end" fill="#aaa" font-family="Helvetica" font-size="11">20</text>
+  <line x1="60" y1="555" x2="640" y2="555" stroke="#f0f0f0" stroke-width="1"/>
+
+  <rect x="65" y="117.0" width="570" height="56.0" 
+        rx="4" fill="#FF6B6B" opacity="0.85"/>
+  <text x="72" y="149.0" fill="#333" font-family="Helvetica" font-size="12">
+    改代码
+  </text>
+  <text x="625" y="149.0" text-anchor="end" fill="#666" font-family="Helvetica" font-size="10">
+    09:00-10:30
+  </text>
+
+  <rect x="65" y="177.0" width="570" height="36.0" 
+        rx="4" fill="#4ECDC4" opacity="0.85"/>
+  <text x="72" y="199.0" fill="#333" font-family="Helvetica" font-size="12">
+    开会讨论
+  </text>
+  <text x="625" y="199.0" text-anchor="end" fill="#666" font-family="Helvetica" font-size="10">
+    10:30-11:30
+  </text>
+
+  <rect x="65" y="237.0" width="570" height="36.0" 
+        rx="4" fill="#45B7D1" opacity="0.85"/>
+  <text x="72" y="259.0" fill="#333" font-family="Helvetica" font-size="12">
+    午餐休息
+  </text>
+  <text x="625" y="259.0" text-anchor="end" fill="#666" font-family="Helvetica" font-size="10">
+    12:00-13:00
+  </text>
+
+  <rect x="65" y="317.0" width="570" height="76.0" 
+        rx="4" fill="#96CEB4" opacity="0.85"/>
+  <text x="72" y="359.0" fill="#333" font-family="Helvetica" font-size="12">
+    写文档
+  </text>
+  <text x="625" y="359.0" text-anchor="end" fill="#666" font-family="Helvetica" font-size="10">
+    14:00-16:00
+  </text>
+
+  <rect x="65" y="417.0" width="570" height="36.0" 
+        rx="4" fill="#FFEAA7" opacity="0.85"/>
+  <text x="72" y="439.0" fill="#333" font-family="Helvetica" font-size="12">
+    Code Review
+  </text>
+  <text x="625" y="439.0" text-anchor="end" fill="#666" font-family="Helvetica" font-size="10">
+    16:30-17:30
+  </text>
+</svg>

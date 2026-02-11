@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500">
+  <!-- 纯白背景 -->
+  <rect width="500" height="500" fill="#fafafa"/>
+  
+  <!-- 标题 -->
+  <text x="40" y="45" fill="#333" font-family="Georgia" font-size="20" font-style="italic">
+    2026-02-07
+  </text>
+  <line x1="40" y1="55" x2="200" y2="55" stroke="#333" stroke-width="1"/>
+  
+  <!-- 时间轴线 -->
+  <line x1="60" y1="80" x2="60" y2="470" stroke="#ddd" stroke-width="1"/>
+
+  <!-- 节点 -->
+  <circle cx="60" cy="120" r="6" fill="none" stroke="#333" stroke-width="1.5"/>
+  <circle cx="60" cy="120" r="2" fill="#333"/>
+  
+  <!-- 连接线 -->
+  <line x1="66" y1="120" x2="85" y2="120" stroke="#ddd" stroke-width="1"/>
+  
+  <!-- 内容 -->
+  <text x="95" y="112" fill="#111" font-family="Georgia" font-size="15">
+    改代码
+  </text>
+  <text x="95" y="132" fill="#999" font-family="Arial" font-size="12">
+    09:00 — 10:30 · 1h 30m
+  </text>
+
+  <!-- 节点 -->
+  <circle cx="60" cy="200" r="6" fill="none" stroke="#333" stroke-width="1.5"/>
+  <circle cx="60" cy="200" r="2" fill="#333"/>
+  
+  <!-- 连接线 -->
+  <line x1="66" y1="200" x2="85" y2="200" stroke="#ddd" stroke-width="1"/>
+  
+  <!-- 内容 -->
+  <text x="95" y="192" fill="#111" font-family="Georgia" font-size="15">
+    开会讨论
+  </text>
+  <text x="95" y="212" fill="#999" font-family="Arial" font-size="12">
+    10:30 — 11:30 · 1h
+  </text>
+
+  <!-- 节点 -->
+  <circle cx="60" cy="280" r="6" fill="none" stroke="#333" stroke-width="1.5"/>
+  <circle cx="60" cy="280" r="2" fill="#333"/>
+  
+  <!-- 连接线 -->
+  <line x1="66" y1="280" x2="85" y2="280" stroke="#ddd" stroke-width="1"/>
+  
+  <!-- 内容 -->
+  <text x="95" y="272" fill="#111" font-family="Georgia" font-size="15">
+    午餐休息
+  </text>
+  <text x="95" y="292" fill="#999" font-family="Arial" font-size="12">
+    12:00 — 13:00 · 1h
+  </text>
+
+  <!-- 节点 -->
+  <circle cx="60" cy="360" r="6" fill="none" stroke="#333" stroke-width="1.5"/>
+  <circle cx="60" cy="360" r="2" fill="#333"/>
+  
+  <!-- 连接线 -->
+  <line x1="66" y1="360" x2="85" y2="360" stroke="#ddd" stroke-width="1"/>
+  
+  <!-- 内容 -->
+  <text x="95" y="352" fill="#111" font-family="Georgia" font-size="15">
+    写文档
+  </text>
+  <text x="95" y="372" fill="#999" font-family="Arial" font-size="12">
+    14:00 — 16:00 · 2h
+  </text>
+
+  <!-- 节点 -->
+  <circle cx="60" cy="440" r="6" fill="none" stroke="#333" stroke-width="1.5"/>
+  <circle cx="60" cy="440" r="2" fill="#333"/>
+  
+  <!-- 连接线 -->
+  <line x1="66" y1="440" x2="85" y2="440" stroke="#ddd" stroke-width="1"/>
+  
+  <!-- 内容 -->
+  <text x="95" y="432" fill="#111" font-family="Georgia" font-size="15">
+    Code Review
+  </text>
+  <text x="95" y="452" fill="#999" font-family="Arial" font-size="12">
+    16:30 — 17:30 · 1h
+  </text>
+</svg>
