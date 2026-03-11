@@ -9,13 +9,21 @@ models:
   # 轻量级：用于路由、简单分类
   light:
     - name: gemini-lite
+      api_name: aicanapi-key-2
       api_key_env: ROUTER_API_KEY
       base_url: https://aicanapi.com/v1
       model: gemini-2.5-flash-lite-nothinking
 
+    - name: grok-fast-reasoning
+      api_name: aicanapi-key-default
+      api_key_env: ROUTER_API_KEY_2
+      base_url: https://aicanapi.com/v1
+      model: grok-4-fast
+
   # 标准级：用于日常任务处理
   standard:
     - name: gemini-flash
+      api_name: aicanapi-key-1
       api_key_env: LLM_API_KEY
       base_url: https://aicanapi.com/v1
       model: gemini-2.5-flash
@@ -30,5 +38,6 @@ models:
 usage:
   router: light # 意图路由用轻量模型
   schedule: standard # 日程处理用标准模型
+  timeline: standard # 时间线用标准模型
   inbox: standard # 收集箱用标准模型
   default: standard # 默认使用标准模型

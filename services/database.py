@@ -124,6 +124,24 @@ class DatabaseManager:
                 )
             ''')
             
+            # 活动记录表（时间线）
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS activities (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    start_time TEXT NOT NULL,
+                    end_time TEXT,
+                    category TEXT,
+                    tags TEXT,
+                    location TEXT,
+                    related_messages TEXT NOT NULL DEFAULT '[]',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
             conn.commit()
     
     # === 收集箱操作 ===
@@ -358,4 +376,138 @@ class DatabaseManager:
                 (schedule_id, remind_time)
             )
             return cursor.fetchone() is not None
-
+    
+    # === 活动记录操作 ===
+    
+    def insert_activity(self, data: Dict[str, Any]) -> int:
+        """插入活动记录"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO activities 
+                   (user_id, name, description, start_time, end_time, category, 
+                    tags, location, related_messages)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (data["user_id"], data["name"], data.get("description"),
+                 data["start_time"], data.get("end_time"), data.get("category"),
+                 data.get("tags", "[]"), data.get("location"),
+                 data.get("related_messages", "[]"))
+            )
+            conn.commit()
+            return cursor.lastrowid
+    
+    def update_activity(self, activity_id: int, updates: Dict[str, Any]) -> bool:
+        """更新活动记录"""
+        if not updates:
+            return False
+        
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+            values = list(updates.values()) + [activity_id]
+            cursor.execute(
+                f"UPDATE activities SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                values
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+    
+    def get_activities(self, user_id: str, start_date, end_date) -> List[Dict]:
+        """获取日期范围内的活动"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM activities 
+                   WHERE user_id = ? 
+                   AND date(start_time) BETWEEN ? AND ?
+                   ORDER BY start_time""",
+                (user_id, str(start_date), str(end_date))
+            )
+            return [dict(row) for row in cursor.fetchall()]
+    
+    def get_activities_recent(self, user_id: str, hours: int = 24) -> List[Dict]:
+        """获取最近N小时的活动"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM activities 
+                   WHERE user_id = ?
+                   AND start_time >= datetime('now', '-' || ? || ' hours')
+                   ORDER BY start_time DESC""",
+                (user_id, str(hours))
+            )
+            return [dict(row) for row in cursor.fetchall()]
+    
+    def get_activity_by_id(self, activity_id: int) -> Optional[Dict]:
+        """获取单个活动"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM activities WHERE id = ?", (activity_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
+    def check_activity_overlap(self, user_id: str, start_time: str, 
+                                end_time: str = None) -> List[Dict]:
+        """检测活动时间重叠
+        
+        Args:
+            user_id: 用户ID
+            start_time: 开始时间
+            end_time: 结束时间（可选）
+            
+        Returns:
+            重叠的活动列表
+        """
+        if not end_time:
+            # 如果没有结束时间，只检查是否有活动包含这个时刻
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT * FROM activities 
+                       WHERE user_id = ? 
+                       AND start_time <= ? 
+                       AND (end_time IS NULL OR end_time >= ?)""",
+                    (user_id, start_time, start_time)
+                )
+                return [dict(row) for row in cursor.fetchall()]
+        else:
+            # 检测时间段重叠
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """SELECT * FROM activities 
+                       WHERE user_id = ? 
+                       AND start_time < ? 
+                       AND (end_time IS NULL OR end_time > ?)""",
+                    (user_id, end_time, start_time)
+                )
+                return [dict(row) for row in cursor.fetchall()]
+    
+    def find_unclosed_activities(self, user_id: str, name_pattern: str = None, 
+                                   hours: int = 24) -> List[Dict]:
+        """查找最近未结束的活动（end_time为NULL）
+        
+        用于智能补充场景：例如找到"吃饭"相关的未结束活动
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if name_pattern:
+                cursor.execute(
+                    """SELECT * FROM activities 
+                       WHERE user_id = ? 
+                       AND end_time IS NULL
+                       AND name LIKE ?
+                       AND start_time >= datetime('now', '-' || ? || ' hours')
+                       ORDER BY start_time DESC""",
+                    (user_id, f"%{name_pattern}%", str(hours))
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM activities 
+                       WHERE user_id = ? 
+                       AND end_time IS NULL
+                       AND start_time >= datetime('now', '-' || ? || ' hours')
+                       ORDER BY start_time DESC""",
+                    (user_id, str(hours))
+                )
+            return [dict(row) for row in cursor.fetchall()]

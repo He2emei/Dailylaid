@@ -27,6 +27,7 @@
 | 文档 | 说明 |
 |------|------|
 | [ai-agent-guidelines.md](ai-agent-guidelines.md) | AI Agent 协作守则：文档规范、Git 提交规范、变基友好原则 |
+| [testing-guidelines.md](standards/testing-guidelines.md) | 测试规范与脚本管理机制：pytest配置、自动化与手动调试脚本分离方案 |
 
 ---
 

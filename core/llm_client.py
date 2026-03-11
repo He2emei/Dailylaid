@@ -20,19 +20,24 @@ class LLMClient:
     支持 OpenAI 兼容的 API 接口。
     """
     
-    def __init__(self, api_key: str, base_url: str, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str, base_url: str, model: str = "gpt-4o-mini", 
+                 api_name: str = None, name: str = None):
         """初始化客户端
         
         Args:
             api_key: API 密钥
             base_url: API 基础 URL
             model: 模型名称
+            api_name: API友好名称（如 aicanapi-key-1）
+            name: 配置中的名称（如 gemini-lite）
         """
         if OpenAI is None:
             raise ImportError("请安装 openai 库: pip install openai")
         
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
+        self.api_name = api_name or "未命名API"
+        self.name = name or model
         logger.info(f"LLM 客户端初始化: {base_url} (模型: {model})")
     
     def chat(self, messages: List[Dict], 

@@ -80,7 +80,9 @@ class LLMManager:
         return LLMClient(
             api_key=api_key,
             base_url=model_cfg.get("base_url"),
-            model=model_cfg.get("model")
+            model=model_cfg.get("model"),
+            api_name=model_cfg.get("api_name"),
+            name=model_cfg.get("name")
         )
     
     def get_client(self, usage: str = "default") -> Optional[LLMClient]:
@@ -126,15 +128,25 @@ class LLMManager:
             clients = self.clients.get("standard", [])
         
         last_error = None
+        error_details = []
+        
         for i, client in enumerate(clients):
             try:
                 return client.chat(messages, tools=tools, **kwargs)
             except Exception as e:
-                logger.warning(f"模型 {i+1} 调用失败 ({tier}): {e}")
+                error_info = f"[{tier.upper()}] {client.api_name} ({client.name}/{client.model}): {e}"
+                logger.warning(f"模型 {i+1} 调用失败 - {error_info}")
+                error_details.append(error_info)
                 last_error = e
                 continue
         
-        raise RuntimeError(f"所有模型调用失败: {last_error}")
+        # 所有模型都失败了，抛出详细错误
+        error_summary = "\n".join([f"  • {detail}" for detail in error_details])
+        raise RuntimeError(
+            f"所有模型调用失败 (用途:{usage}, 层级:{tier})\n"
+            f"{error_summary}\n"
+            f"最后错误: {last_error}"
+        )
     
     def get_tier(self, usage: str) -> str:
         """获取用途对应的级别"""
