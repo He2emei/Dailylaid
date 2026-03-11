@@ -11,6 +11,7 @@
 | 文档 | 说明 |
 |------|------|
 | [dev-environment-setup.md](getting-started/dev-environment-setup.md) | 开发环境搭建、依赖安装、首次启动 |
+| [environment-separation.md](getting-started/environment-separation.md) | 生产与开发双开环境隔离指南 |
 
 ### 🏗️ 架构解析 (`architecture/`)
 
