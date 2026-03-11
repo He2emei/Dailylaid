@@ -77,7 +77,7 @@ async def main():
     global _adapter
     
     # 初始化日志
-    init_logger(level="INFO", log_file="logs/dailylaid.log")
+    init_logger(level="DEBUG", log_file="logs/dailylaid.log")
     logger = get_logger("app")
     
     logger.info("=" * 50)
@@ -133,11 +133,21 @@ async def main():
         if post_type != "message":
             return
         
+        logger.debug(f"RAW MSG PAYLOAD: {data}")
+        
         message_type = data.get("message_type")
         user_id = str(data.get("user_id", ""))
         group_id = str(data.get("group_id", "")) if data.get("group_id") else None
-        raw_message = data.get("raw_message", "")
         
+        raw_message = data.get("raw_message", "")
+        # 如果 raw_message 为空，尝试从 message 数组提取纯文本
+        if not raw_message and "message" in data and isinstance(data["message"], list):
+            texts = []
+            for seg in data["message"]:
+                if isinstance(seg, dict) and seg.get("type") == "text":
+                    texts.append(seg.get("data", {}).get("text", ""))
+            raw_message = "".join(texts).strip()
+            
         if not raw_message:
             return
         
