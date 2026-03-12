@@ -5,6 +5,7 @@ from .base_tool import BaseTool, ToolRegistry
 from .inbox_tool import InboxTool, InboxListTool
 from .schedule_tool import ScheduleTool, ScheduleListTool
 from .timeline_tool import TimelineRecordTool, TimelineUpdateTool, TimelineListTool, TimelineViewTool
+from .todo_tool import TodoAddTool, TodoListTool, TodoCompleteTool, TodoUpdateTool, TodoCancelTool
 
 __all__ = [
     'BaseTool',
@@ -17,4 +18,9 @@ __all__ = [
     'TimelineUpdateTool',
     'TimelineListTool',
     'TimelineViewTool',
+    'TodoAddTool',
+    'TodoListTool',
+    'TodoCompleteTool',
+    'TodoUpdateTool',
+    'TodoCancelTool',
 ]

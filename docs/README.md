@@ -22,6 +22,9 @@
 | [tool-module-system.md](architecture/tool-module-system.md) | 工具与模块注册系统：BaseTool、ToolModule、如何新增工具 |
 | [database-design.md](architecture/database-design.md) | 数据库设计：7 张表结构、查询模式、扩展方向 |
 | [network-adapter-design.md](architecture/network-adapter-design.md) | 网络适配器设计：WebSocket/HTTP 模式、NapCat 集成、消息协议 |
+| [skills-concept-overview.md](architecture/skills-concept-overview.md) | Skills 概念总览：定义、组成、生命周期、与 MCP/Prompt 的对比 |
+| [skills-implementation-detail.md](architecture/skills-implementation-detail.md) | Skills 实现细节：数据结构、引擎实现、Agent Loop、YAML 解析 |
+| [skills-dailylaid-adaptation.md](architecture/skills-dailylaid-adaptation.md) | Skills 在 Dailylaid 中的适配方案：3 阶段渐进式改造计划 |
 
 ### 📏 规范守则 (`standards/`)
 
@@ -29,6 +32,15 @@
 |------|------|
 | [ai-agent-guidelines.md](ai-agent-guidelines.md) | AI Agent 协作守则：文档规范、Git 提交规范、变基友好原则 |
 | [testing-guidelines.md](standards/testing-guidelines.md) | 测试规范与脚本管理机制：pytest配置、自动化与手动调试脚本分离方案 |
+
+### 📅 任务规划 (`plans/`)
+
+| 文档 | 说明 |
+|------|------|
+| [2026-03-11-debug-group-message.md](plans/2026-03-11-debug-group-message.md) | 群消息处理 Bug 排查与修复 |
+| [2026-03-11-organize-tests.md](plans/2026-03-11-organize-tests.md) | 测试脚本整理与 pytest 接入 |
+| [2026-03-12-implement-skills.md](plans/2026-03-12-implement-skills.md) | Skills 架构实施（SkillEngine + 多轮 Agent Loop）|
+| [2026-03-12-todo-system.md](plans/2026-03-12-todo-system.md) | 待办/事务管理系统设计方案（7阶段路线图）|
 
 ---
 
@@ -44,4 +56,4 @@
 
 ---
 
-*最后更新: 2026-03-11*
+*最后更新: 2026-03-12*

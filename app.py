@@ -18,10 +18,14 @@ from utils import init_logger, get_logger
 _adapter = None
 
 
-async def send_reminder_message(user_id: str, message: str):
+async def send_reminder_message(user_id: str, message: str,
+                                message_type: str = "private", group_id: str = None):
     """提醒服务的消息发送回调"""
     if _adapter:
-        await _adapter.send_message("private", int(user_id), message)
+        if message_type == "group" and group_id:
+            await _adapter.send_message("group", int(group_id), message)
+        else:
+            await _adapter.send_message("private", int(user_id), message)
 
 
 async def handle_command(user_id: str, message: str, db) -> str:
@@ -77,7 +81,7 @@ async def main():
     global _adapter
     
     # 初始化日志
-    init_logger(level="INFO", log_file="logs/dailylaid.log")
+    init_logger(level="DEBUG", log_file="logs/dailylaid.log")
     logger = get_logger("app")
     
     logger.info("=" * 50)
@@ -133,11 +137,21 @@ async def main():
         if post_type != "message":
             return
         
+        logger.debug(f"RAW MSG PAYLOAD: {data}")
+        
         message_type = data.get("message_type")
         user_id = str(data.get("user_id", ""))
         group_id = str(data.get("group_id", "")) if data.get("group_id") else None
-        raw_message = data.get("raw_message", "")
         
+        raw_message = data.get("raw_message", "")
+        # 如果 raw_message 为空，尝试从 message 数组提取纯文本
+        if not raw_message and "message" in data and isinstance(data["message"], list):
+            texts = []
+            for seg in data["message"]:
+                if isinstance(seg, dict) and seg.get("type") == "text":
+                    texts.append(seg.get("data", {}).get("text", ""))
+            raw_message = "".join(texts).strip()
+            
         if not raw_message:
             return
         
@@ -155,7 +169,9 @@ async def main():
         
         # 如果不是命令或命令未处理，走 Agent 流程
         if reply is None:
-            reply = await agent.process(user_id, raw_message)
+            reply = await agent.process(user_id, raw_message,
+                                        message_type=message_type,
+                                        group_id=group_id)
         
         if reply:
             logger.info(f"📤 回复: {reply}")
