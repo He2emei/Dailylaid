@@ -18,10 +18,14 @@ from utils import init_logger, get_logger
 _adapter = None
 
 
-async def send_reminder_message(user_id: str, message: str):
+async def send_reminder_message(user_id: str, message: str,
+                                message_type: str = "private", group_id: str = None):
     """提醒服务的消息发送回调"""
     if _adapter:
-        await _adapter.send_message("private", int(user_id), message)
+        if message_type == "group" and group_id:
+            await _adapter.send_message("group", int(group_id), message)
+        else:
+            await _adapter.send_message("private", int(user_id), message)
 
 
 async def handle_command(user_id: str, message: str, db) -> str:
@@ -165,7 +169,9 @@ async def main():
         
         # 如果不是命令或命令未处理，走 Agent 流程
         if reply is None:
-            reply = await agent.process(user_id, raw_message)
+            reply = await agent.process(user_id, raw_message,
+                                        message_type=message_type,
+                                        group_id=group_id)
         
         if reply:
             logger.info(f"📤 回复: {reply}")

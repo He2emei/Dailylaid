@@ -40,26 +40,20 @@ class ScheduleTool(BaseTool):
             "reminders": {
                 "type": "array",
                 "items": {"type": "integer"},
-                "description": "提前提醒时间列表，单位分钟。如 [60, 30] 表示提前60分钟和30分钟各提醒一次"
+                "description": "提前提醒时间列表，单位分钟。规则：[0] 表示到时间点立刻提醒（适用于'3分钟后喝水'、'半小时后吃药'等短时间提醒）；[30] 表示提前30分钟提醒（适用于会议、约会等正式安排）；[60, 30] 表示提前60分钟和30分钟各提醒一次。请根据提醒距现在的时长智能选择。"
             }
         },
         "required": ["title", "start_time"]
     }
     
     def execute(self, user_id: str, **params) -> str:
-        """添加日程
-        
-        Args:
-            user_id: 用户 ID
-            title: 日程标题
-            start_time: 开始时间
-            location: 地点
-            reminders: 提醒时间列表
-        """
+        """添加日程"""
         title = params.get("title")
         start_time = params.get("start_time")
         location = params.get("location")
-        reminders = params.get("reminders", [30])  # 默认提前30分钟提醒
+        reminders = params.get("reminders")
+        source_type = params.get("source_type", "private")
+        source_group_id = params.get("source_group_id")
         
         if not title or not start_time:
             return "需要提供日程标题和时间"
@@ -70,6 +64,11 @@ class ScheduleTool(BaseTool):
         except ValueError:
             return f"时间格式错误: {start_time}，请使用 YYYY-MM-DD HH:MM 格式"
         
+        # 智能推断默认提醒时间：距现在超过60分钟 → 提前30分钟；否则 → 到时立刻提醒
+        if reminders is None:
+            minutes_until = (start_dt - datetime.now()).total_seconds() / 60
+            reminders = [30] if minutes_until > 60 else [0]
+        
         # 保存到数据库
         schedule_data = {
             "user_id": user_id,
@@ -77,7 +76,9 @@ class ScheduleTool(BaseTool):
             "start_time": start_dt.isoformat(),
             "location": location,
             "reminders": json.dumps(reminders),
-            "repeat_rule": '{"type": "none"}'
+            "repeat_rule": '{"type": "none"}',
+            "source_type": source_type,
+            "source_group_id": source_group_id,
         }
         
         schedule_id = self.db.insert_schedule(schedule_data)
@@ -89,11 +90,14 @@ class ScheduleTool(BaseTool):
         reply = f"✅ 已添加日程\n\n📅 {title}\n⏰ {time_str}"
         if location:
             reply += f"\n📍 {location}"
-        if reminders:
+        if reminders == [0]:
+            reply += "\n🔔 到时立刻提醒"
+        elif reminders:
             reply += f"\n🔔 提前 {reminders[0]} 分钟提醒"
         
         logger.info(f"添加日程: [{user_id}] {title} @ {time_str}")
         return reply
+
 
 
 class ScheduleListTool(BaseTool):

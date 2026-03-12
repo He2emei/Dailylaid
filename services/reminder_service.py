@@ -66,6 +66,8 @@ class ReminderService:
         user_id = schedule["user_id"]
         title = schedule["title"]
         start_time = datetime.fromisoformat(schedule["start_time"])
+        source_type = schedule.get("source_type", "private")
+        source_group_id = schedule.get("source_group_id")
         
         # 解析提醒列表
         try:
@@ -93,34 +95,50 @@ class ReminderService:
                     schedule_id=schedule_id,
                     title=title,
                     start_time=start_time,
-                    remind_minutes=remind_minutes
+                    remind_minutes=remind_minutes,
+                    source_type=source_type,
+                    source_group_id=source_group_id
                 )
                 
                 # 记录已发送
                 self.db.log_reminder(schedule_id, remind_time_str)
     
     async def _send_reminder(self, user_id: str, schedule_id: int, 
-                              title: str, start_time: datetime, remind_minutes: int):
+                              title: str, start_time: datetime, remind_minutes: int,
+                              source_type: str = "private", source_group_id: str = None):
         """发送提醒消息"""
         # 格式化时间
         time_str = start_time.strftime("%H:%M")
         date_str = start_time.strftime("%m月%d日")
         
-        # 构建消息
-        if remind_minutes >= 60:
+        # 构建消息文案
+        if remind_minutes == 0:
+            # 到时立刻提醒，直接点明事项
+            message = f"⏰ 该{title}了！（{date_str} {time_str}）"
+        elif remind_minutes >= 60:
             time_desc = f"{remind_minutes // 60}小时后"
+            message = f"⏰ 日程提醒\n\n{title}\n时间: {date_str} {time_str}\n({time_desc}开始)"
         else:
             time_desc = f"{remind_minutes}分钟后"
+            message = f"⏰ 日程提醒\n\n{title}\n时间: {date_str} {time_str}\n({time_desc}开始)"
         
-        message = f"⏰ 日程提醒\n\n{title}\n时间: {date_str} {time_str}\n({time_desc}开始)"
+        # 群聊时在消息前加 AT
+        if source_type == "group" and source_group_id:
+            message = f"[CQ:at,qq={user_id}] {message}"
         
-        logger.info(f"发送提醒: [{user_id}] {title}")
+        logger.info(f"发送提醒 [{source_type}]: [{user_id}] {title}")
         
         # 调用回调发送
         if self.send_callback:
             try:
-                await self.send_callback(user_id, message)
+                await self.send_callback(
+                    user_id=user_id,
+                    message=message,
+                    message_type=source_type,
+                    group_id=source_group_id
+                )
             except Exception as e:
                 logger.error(f"发送提醒失败: {e}")
         else:
             logger.warning("未设置消息发送回调")
+

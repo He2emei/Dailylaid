@@ -39,6 +39,7 @@
 | [2026-03-11-debug-group-message.md](plans/2026-03-11-debug-group-message.md) | 群消息处理 Bug 排查与修复 |
 | [2026-03-11-organize-tests.md](plans/2026-03-11-organize-tests.md) | 测试脚本整理与 pytest 接入 |
 | [2026-03-12-implement-skills.md](plans/2026-03-12-implement-skills.md) | Skills 架构实施（SkillEngine + 多轮 Agent Loop）|
+| [2026-03-12-todo-system.md](plans/2026-03-12-todo-system.md) | 待办/事务管理系统设计方案（7阶段路线图）|
 
 ---
 
