@@ -18,16 +18,32 @@ from utils import init_logger, get_logger
 
 # 全局变量，用于提醒服务发送消息
 _adapter = None
+logger = get_logger("app")
 
 
 async def send_reminder_message(user_id: str, message: str,
-                                message_type: str = "private", group_id: str = None):
-    """提醒服务的消息发送回调"""
+                                message_type: str = "private", group_id: str = None) -> str | None:
+    """提醒服务的消息发送回调
+    
+    Returns:
+        发出消息的 message_id（str），或 None（发送失败/超时）
+    """
     if _adapter:
-        if message_type == "group" and group_id:
-            await _adapter.send_message("group", int(group_id), message)
-        else:
-            await _adapter.send_message("private", int(user_id), message)
+        try:
+            if message_type == "group" and group_id:
+                resp = await _adapter.send_message("group", int(group_id), message)
+            else:
+                resp = await _adapter.send_message("private", int(user_id), message)
+            # 提取 message_id
+            msg_id = resp.get("data", {}).get("message_id") if isinstance(resp, dict) else None
+            return str(msg_id) if msg_id else None
+        except TimeoutError:
+            logger.warning(f"提醒消息发送超时（消息可能已发出）")
+            return None
+        except Exception as e:
+            logger.error(f"提醒消息发送失败: {e}")
+            return None
+    return None
 
 
 # === Phase 2: 回复消息解析工具 ===

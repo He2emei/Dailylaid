@@ -829,6 +829,35 @@ class DatabaseManager:
             )
             return cursor.fetchone()[0]
     
+    def get_last_task_reminder(self, task_id: int, remind_type: str = None) -> Optional[Dict]:
+        """获取某任务最后一次提醒记录
+        
+        Args:
+            task_id: 任务 ID
+            remind_type: 提醒类型（None=不限类型）
+        
+        Returns:
+            最后一次提醒记录 dict，或 None
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if remind_type:
+                cursor.execute(
+                    """SELECT * FROM task_reminder_logs 
+                       WHERE task_id = ? AND remind_type = ?
+                       ORDER BY id DESC LIMIT 1""",
+                    (task_id, remind_type)
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM task_reminder_logs 
+                       WHERE task_id = ?
+                       ORDER BY id DESC LIMIT 1""",
+                    (task_id,)
+                )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
     # === 用户偏好 ===
     
     def get_user_preferences(self, user_id: str) -> Dict:
