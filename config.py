@@ -15,6 +15,9 @@ class Config:
     LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
     LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
     
+    # === BOT 自身配置 ===
+    BOT_QQ = os.getenv("BOT_QQ", "")  # BOT 的 QQ 号，用于识别自身消息
+    
     # === 路由模型配置 (第一层) ===
     ROUTER_API_KEY = os.getenv("ROUTER_API_KEY", "")
     ROUTER_BASE_URL = os.getenv("ROUTER_BASE_URL", "")

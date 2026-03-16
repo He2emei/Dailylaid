@@ -764,6 +764,27 @@ class DatabaseManager:
             row = cursor.fetchone()
             return dict(row) if row else None
     
+    def find_task_by_source_message(self, message_id: str, user_id: str = None) -> Optional[Dict]:
+        """通过 source_message_id 反查任务（备选方案）"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if user_id:
+                cursor.execute(
+                    """SELECT * FROM tasks 
+                       WHERE source_message_id = ? AND user_id = ? AND status = 'pending'
+                       ORDER BY updated_at DESC LIMIT 1""",
+                    (message_id, user_id)
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM tasks 
+                       WHERE source_message_id = ? AND status = 'pending'
+                       ORDER BY updated_at DESC LIMIT 1""",
+                    (message_id,)
+                )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
     def append_bound_message(self, task_id: int, message_id: str) -> bool:
         """追加消息 ID 到任务的 bound_message_ids"""
         task = self.get_task_by_id(task_id)

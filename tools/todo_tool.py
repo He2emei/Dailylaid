@@ -65,6 +65,7 @@ class TodoAddTool(BaseTool):
         description = params.get("description")
         source_type = params.get("source_type", "private")
         source_group_id = params.get("source_group_id")
+        source_message_id = params.get("source_message_id")
         
         if not title:
             return "需要提供任务标题"
@@ -95,6 +96,7 @@ class TodoAddTool(BaseTool):
             "category": category,
             "source_type": source_type,
             "source_group_id": source_group_id,
+            "source_message_id": source_message_id,
         }
         
         task_id = self.db.insert_task(task_data)

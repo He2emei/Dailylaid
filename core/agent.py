@@ -137,7 +137,8 @@ class DailylaidAgent:
         ))
     
     async def process(self, user_id: str, message: str,
-                      message_type: str = "private", group_id: str = None) -> str:
+                      message_type: str = "private", group_id: str = None,
+                      message_id: str = None) -> str:
         """处理用户消息（两层架构）"""
         try:
             # 第一层：路由
@@ -152,7 +153,8 @@ class DailylaidAgent:
             
             # 第二层：执行
             return await self._execute(user_id, message, module,
-                                       message_type=message_type, group_id=group_id)
+                                       message_type=message_type, group_id=group_id,
+                                       message_id=message_id)
             
         except RuntimeError as e:
             error_msg = str(e)
@@ -240,10 +242,12 @@ class DailylaidAgent:
         return "inbox"
     
     async def _execute(self, user_id: str, message: str, module: ToolModule,
-                       message_type: str = "private", group_id: str = None) -> str:
+                       message_type: str = "private", group_id: str = None,
+                       message_id: str = None) -> str:
         """第二层：工具执行（支持多轮 Agent Loop）"""
         self._current_message_type = message_type
         self._current_group_id = group_id
+        self._current_message_id = message_id
         now = datetime.now()
         today = now.strftime("%Y-%m-%d %A")
         current_time = now.strftime("%Y-%m-%d %H:%M")
@@ -327,6 +331,8 @@ class DailylaidAgent:
                         if tool_name in ("schedule", "todo_add"):
                             arguments["source_type"] = getattr(self, "_current_message_type", "private")
                             arguments["source_group_id"] = getattr(self, "_current_group_id", None)
+                        if tool_name == "todo_add":
+                            arguments["source_message_id"] = getattr(self, "_current_message_id", None)
                         
                         result = tool.execute(user_id, **arguments)
                         logger.info(f"工具 {tool_name} 执行成功")
