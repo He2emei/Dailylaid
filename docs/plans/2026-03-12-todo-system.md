@@ -1,6 +1,6 @@
 # 待办/事务管理系统设计方案
 
-**状态**: `讨论中`
+**状态**: `进行中`
 **创建日期**: 2026-03-12
 
 ---
@@ -295,13 +295,13 @@ class ConfigManager:
 - [ ] 修改 `send_message` 调用，捕获返回的 `message_id` 并记录
 - [ ] 实现回复意图识别 → 任务操作的链路
 
-### Phase 3: 提醒引擎扩展
+### Phase 3: 提醒引擎扩展 ✅
 > 依赖 Phase 1 的 tasks 表 + Phase 2 的消息 ID 记录。
 
-- [ ] 扩展 `ReminderService`，新增 Task 类型检查逻辑
-- [ ] 实现分级催促（预提醒 → 到时 → deadline → 逾期退避）
-- [ ] 催促消息发送后记录 `message_id` 到 `bound_message_ids`
-- [ ] 实现每天最大催促次数限制 & 超时停止催促
+- [x] 扩展 `ReminderService`，新增 Task 类型检查逻辑
+- [x] 实现分级催促（预提醒 → 到时 → deadline → 逾期退避）
+- [x] 催促消息发送后记录 `message_id` 到 `bound_message_ids`
+- [x] 实现每天最大催促次数限制 & 超时停止催促
 
 ### Phase 4: 路由置信度 + 确认机制
 > 优化体验，需要 Phase 1 的 todo 模块已就位。
@@ -350,4 +350,4 @@ class ConfigManager:
 
 ---
 
-*最后更新: 2026-03-12*
+*最后更新: 2026-03-16*
