@@ -40,4 +40,42 @@
 
 ---
 
-*最后更新: 2026-03-11*
+## 🔀 Git Remote 与代码同步
+
+两个本地仓库通过 **GitHub** 作为中转进行代码同步：
+
+```
+Dailylaid_Dev  ──push──▶  GitHub  ◀──pull──  Dailylaid
+ (开发端)          (git@github.com:He2emei/Dailylaid.git)     (生产端)
+```
+
+### Remote 配置
+
+| 仓库 | Remote 名 | 指向 | 用途 |
+|------|----------|------|------|
+| `Dailylaid_Dev` | `origin` | `git@github.com:He2emei/Dailylaid.git` | 开发完成后 push 到 GitHub |
+| `Dailylaid_Dev` | `production` | `E:/Project/myAIApp/Dailylaid` | 本地生产仓库（仅保留，不直接 push） |
+| `Dailylaid` | `origin` | `git@github.com:He2emei/Dailylaid.git` | 从 GitHub pull 最新代码 |
+
+### 日常同步流程
+
+```bash
+# 1. 在开发端完成开发、提交
+cd Dailylaid_Dev
+git add .
+git commit -m "feat(xxx): ..."
+git push origin master
+
+# 2. 在生产端拉取最新代码
+cd Dailylaid
+git pull origin master
+
+# 3. 重启生产环境的 app
+```
+
+> [!WARNING]
+> 不要直接从 Dev push 到本地 Production（`git push production master`），因为 Production 是 non-bare 仓库且 master 已签出，会被 Git 拒绝。
+
+---
+
+*最后更新: 2026-03-18*
