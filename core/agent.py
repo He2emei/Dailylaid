@@ -1,8 +1,9 @@
 # core/agent.py
 """Agent 核心模块 - 两层模型架构"""
 
+import json
 import os
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 from datetime import datetime
 
 from .llm_manager import LLMManager
@@ -16,41 +17,49 @@ from utils import get_logger
 logger = get_logger("agent")
 
 MAX_AGENT_ROUNDS = 5  # Agent Loop 最大轮次，防止死循环
+CONFIDENCE_THRESHOLD = 0.8  # Phase 4: 低于此值触发确认
+CONFIRMABLE_MODULES = {"schedule", "todo"}  # 仅这些模块之间的模糊才触发确认
 
 
 # === 第一层 Router Prompt ===
-ROUTER_PROMPT = """你是一个意图识别助手。根据用户消息，判断应该使用哪个模块处理。
+ROUTER_PROMPT = """你是一个意图识别助手。根据用户消息，判断应该使用哪个模块处理，并给出你的置信度。
 
 可用模块：
 {modules}
 
 重要区分：
 
-- **schedule（日程）**：时间锚定的事件，“即使我不去，事件也会发生/过去”
+- **schedule（日程）**：时间锚定的事件，"即使我不去，事件也会发生/过去"
   关键特征：开会、约会、航班、就诊、几点开始、比赛
-  ​
-- **todo（待办）**：需要我完成的任务，“不做就一直悬着，等着我去完成”
+
+- **todo（待办）**：需要我完成的任务，"不做就一直悬着，等着我去完成"
   关键特征：交报告、买菜、背单词、写代码、截止、完成、待办、要做
-  ​
+
 - **timeline（时间线）**：记录/查看**已完成**的活动（过去时态）
   关键特征：刚才、今天上午、昨天、做了、完成了、干了什么
 
 判断要点：
 - 当前时间是 {current_time}，当前日期是 {today}
 - 过去时态的描述 → timeline
-- “到时候即使我不做，事件也会发生” → schedule
-- “不做就一直悬着” → todo  
+- "到时候即使我不做，事件也会发生" → schedule
+- "不做就一直悬着" → todo
 - 查看待办/任务列表 → todo
 - 查看日程/安排 → schedule
 - 标记完成/取消任务 → todo
 
-规则：
-1. 只输出模块名称（英文），不要其他内容
-2. 如果无法确定，输出 inbox
+输出格式：
+必须输出一行 JSON（不要用 markdown 代码块包裹）：
+{{"module": "模块名", "confidence": 0.0-1.0}}
 
-用户消息: {message}
+置信度参考：
+- 1.0：完全确定（如 "明天十点开会" → schedule）
+- 0.8+：基本确定
+- 0.5-0.8：存在模糊性（如 "周五去健身房"，可能是日程也可能是待办）
+- <0.5：很不确定
 
-请输出模块名称:"""
+如果完全无法判断，输出 {{"module": "inbox", "confidence": 1.0}}
+
+用户消息: {message}"""
 
 
 # === 第二层 Executor Prompt ===
@@ -138,12 +147,23 @@ class DailylaidAgent:
     
     async def process(self, user_id: str, message: str,
                       message_type: str = "private", group_id: str = None,
-                      message_id: str = None) -> str:
-        """处理用户消息（两层架构）"""
+                      message_id: str = None) -> str | dict:
+        """处理用户消息（两层架构）
+        
+        Returns:
+            str: 正常回复文本
+            dict: 低置信度时返回确认信息 {"type": "confirmation", ...}
+        """
         try:
             # 第一层：路由
-            module_name = await self._route(message)
-            logger.info(f"路由结果: {module_name}")
+            module_name, confidence = await self._route(message)
+            logger.info(f"路由结果: {module_name} (置信度: {confidence})")
+            
+            # Phase 4: 低置信度 + 可确认模块 → 返回确认请求
+            if (confidence < CONFIDENCE_THRESHOLD
+                    and module_name in CONFIRMABLE_MODULES):
+                logger.info(f"置信度 {confidence} < {CONFIDENCE_THRESHOLD}，触发确认")
+                return self._build_confirmation(message, module_name, confidence)
             
             # 获取模块
             module = self.modules.get(module_name)
@@ -206,11 +226,11 @@ class DailylaidAgent:
                         "消息已保存到收集箱。")
             return f"处理出错: {str(e)}"
     
-    async def _route(self, message: str) -> str:
-        """路由：判断使用哪个模块"""
+    async def _route(self, message: str) -> Tuple[str, float]:
+        """路由：判断使用哪个模块，返回 (模块名, 置信度)"""
         from datetime import datetime
         
-        modules_desc = self.modules.build_router_prompt() # Changed to build_router_prompt as per original logic
+        modules_desc = self.modules.build_router_prompt()
         today = datetime.now().strftime("%Y-%m-%d")
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         
@@ -222,24 +242,99 @@ class DailylaidAgent:
         )
         
         # 使用路由模型（轻量快速）
-        response = self.llm.call_with_fallback( # Changed back to self.llm as per original
+        response = self.llm.call_with_fallback(
             usage="router",
             messages=[{"role": "user", "content": prompt}]
         )
         
-        # 提取模块名
-        content = response.get("content", "inbox").strip().lower() # Kept original variable name for consistency
+        content = response.get("content", "").strip()
         
-        # 验证模块名有效
-        if content in self.modules.all_names():
-            return content
+        # 优先尝试 JSON 解析
+        module_name, confidence = self._parse_route_json(content)
+        if module_name:
+            return module_name, confidence
         
-        # 尝试从回复中提取有效模块名
+        # 兜底：从纯文本中提取模块名（向后兼容旧模型输出）
+        content_lower = content.lower()
+        if content_lower in self.modules.all_names():
+            return content_lower, 1.0
+        
         for name in self.modules.all_names():
-            if name in content:
-                return name
+            if name in content_lower:
+                return name, 1.0
         
-        return "inbox"
+        return "inbox", 1.0
+    
+    def _parse_route_json(self, content: str) -> Tuple[str | None, float]:
+        """尝试从 LLM 输出中解析 JSON 路由结果"""
+        try:
+            # 处理可能的 markdown 代码块包裹
+            text = content.strip()
+            if text.startswith("```"):
+                lines = text.split("\n")
+                text = "\n".join(lines[1:-1]).strip()
+            
+            data = json.loads(text)
+            module = data.get("module", "").strip().lower()
+            confidence = float(data.get("confidence", 1.0))
+            confidence = max(0.0, min(1.0, confidence))  # 限制在 [0, 1]
+            
+            if module in self.modules.all_names():
+                return module, confidence
+            
+            # 模块名无效
+            logger.warning(f"路由 JSON 中模块名无效: {module}")
+            return None, 1.0
+            
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            logger.debug(f"路由 JSON 解析失败 (将使用文本兜底): {e}")
+            return None, 1.0
+    
+    def _build_confirmation(self, message: str, suggested_module: str,
+                            confidence: float) -> dict:
+        """构建低置信度时的确认消息
+        
+        Returns:
+            dict with type='confirmation', confirmation text, and routing metadata
+        """
+        # 根据建议模块确定选项顺序
+        if suggested_module == "schedule":
+            candidates = ["schedule", "todo"]
+        else:
+            candidates = ["todo", "schedule"]
+        
+        confirm_text = (
+            f"🤔 \"{message}\"\n\n"
+            f"你是要：\n"
+            f"1️⃣ 添加日程（固定时间安排，到时提醒）\n"
+            f"2️⃣ 添加待办（需要追踪完成的任务）\n\n"
+            f"回复 1 或 2"
+        )
+        
+        return {
+            "type": "confirmation",
+            "message": confirm_text,
+            "original_message": message,
+            "candidates": candidates,
+            "suggested_module": suggested_module,
+            "confidence": confidence
+        }
+    
+    async def execute_with_module(self, user_id: str, message: str,
+                                  module_name: str,
+                                  message_type: str = "private",
+                                  group_id: str = None,
+                                  message_id: str = None) -> str:
+        """Phase 4: 确认后直接指定模块执行（跳过路由）"""
+        module = self.modules.get(module_name)
+        if not module:
+            module = self.modules.get_fallback()
+            logger.warning(f"指定模块 {module_name} 不存在，回退到 inbox")
+        
+        logger.info(f"确认路由执行: {module_name}")
+        return await self._execute(user_id, message, module,
+                                   message_type=message_type, group_id=group_id,
+                                   message_id=message_id)
     
     async def _execute(self, user_id: str, message: str, module: ToolModule,
                        message_type: str = "private", group_id: str = None,
@@ -310,7 +405,7 @@ class DailylaidAgent:
                         "type": "function",
                         "function": {
                             "name": tc["name"],
-                            "arguments": __import__('json').dumps(tc["arguments"], ensure_ascii=False)
+                            "arguments": json.dumps(tc["arguments"], ensure_ascii=False)
                         }
                     }
                     for tc in response["tool_calls"]
@@ -381,6 +476,3 @@ class DailylaidAgent:
                 return "\n".join(lines)
         
         return ""
-    
-    
-    # _handle_tool_calls 已被内联到 _execute() 的 Agent Loop 中

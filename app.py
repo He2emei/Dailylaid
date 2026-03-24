@@ -281,6 +281,10 @@ async def main():
     _pending_bind = {}
     _PENDING_BIND_TTL = 30  # 30秒过期
     
+    # Phase 4: 路由确认等待队列
+    # 格式: {user_id: {"original_message": str, "candidates": list, "message_type": str, "group_id": str|None, "message_id": str}}
+    _pending_confirmations = {}
+    
     def try_bind_self_message(bot_msg_id: str, raw_text: str):
         """尝试将 BOT 自身消息的 message_id 绑定到待绑定队列中的任务"""
         now = time.time()
@@ -398,6 +402,37 @@ async def main():
                                         actual_text, message_type, target_id, logger)
                 return  # 已处理，不走正常路由
         
+        # === Phase 4: 路由确认回复 ===
+        if user_id in _pending_confirmations:
+            confirm = _pending_confirmations.pop(user_id)
+            choice = raw_message.strip()
+            if choice in ("1", "2"):
+                idx = int(choice) - 1
+                chosen_module = confirm["candidates"][idx]
+                logger.info(f"Phase 4: 用户选择 {choice} -> {chosen_module}")
+                reply = await agent.execute_with_module(
+                    user_id, confirm["original_message"], chosen_module,
+                    message_type=confirm.get("message_type", "private"),
+                    group_id=confirm.get("group_id"),
+                    message_id=confirm.get("message_id")
+                )
+                # 跳到发送回复
+                if reply:
+                    logger.info(f"\U0001f4e4 回复: {reply}")
+                    try:
+                        if message_type == "group":
+                            await adapter.send_message("group", data.get("group_id"), reply)
+                        else:
+                            await adapter.send_message("private", int(user_id), reply)
+                    except TimeoutError:
+                        logger.warning(f"发送消息超时（消息可能已发出）")
+                    except Exception as e:
+                        logger.error(f"消息发送失败: {e}")
+                return
+            else:
+                # 用户回复的不是 1/2，丢弃确认状态，当作新消息继续处理
+                logger.info(f"Phase 4: 用户回复非确认选项，丢弃确认状态，按新消息处理")
+        
         # 检查是否是快捷命令（以 / 开头，绕过 LLM）
         reply = None
         if raw_message.startswith("/"):
@@ -405,10 +440,24 @@ async def main():
         
         # 如果不是命令或命令未处理，走 Agent 流程
         if reply is None:
-            reply = await agent.process(user_id, raw_message,
+            result = await agent.process(user_id, raw_message,
                                         message_type=message_type,
                                         group_id=group_id,
                                         message_id=str(data.get("message_id", "")))
+            
+            # Phase 4: 如果返回的是确认请求（dict），存入确认队列
+            if isinstance(result, dict) and result.get("type") == "confirmation":
+                _pending_confirmations[user_id] = {
+                    "original_message": result["original_message"],
+                    "candidates": result["candidates"],
+                    "message_type": message_type,
+                    "group_id": group_id,
+                    "message_id": str(data.get("message_id", ""))
+                }
+                reply = result["message"]  # 确认问题文本
+                logger.info(f"Phase 4: 触发路由确认，等待用户回复")
+            else:
+                reply = result
         
         if reply:
             logger.info(f"📤 回复: {reply}")
