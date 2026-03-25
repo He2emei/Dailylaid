@@ -303,13 +303,13 @@ class ConfigManager:
 - [x] 催促消息发送后记录 `message_id` 到 `bound_message_ids`
 - [x] 实现每天最大催促次数限制 & 超时停止催促
 
-### Phase 4: 路由置信度 + 确认机制
+### Phase 4: 路由置信度 + 确认机制 ✅
 > 优化体验，需要 Phase 1 的 todo 模块已就位。
 
-- [ ] 修改 Router Prompt，输出 JSON 格式 `{"module": "xxx", "confidence": 0.9}`
-- [ ] 修改 `_route()` 方法解析置信度
-- [ ] 低置信度时生成确认消息并等待用户回复
-- [ ] 确认后路由到正确模块
+- [x] 修改 Router Prompt，输出 JSON 格式 `{"module": "xxx", "confidence": 0.9}`
+- [x] 修改 `_route()` 方法解析置信度
+- [x] 低置信度时生成确认消息并等待用户回复
+- [x] 确认后路由到正确模块
 
 ### Phase 5: 重复任务
 > 依赖 Phase 1 的 task_templates 表。
